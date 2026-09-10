@@ -35,11 +35,8 @@ export function DishPageClient({ id }: DishPageClientProps) {
   };
 
   const handleLaunchAR = () => {
-    const nativeActivated = triggerNativeAR();
-    if (!nativeActivated) {
-      setIsArOverlayOpen(true);
-      triggerToast("Opening AR camera mode… Point at Hiro marker");
-    }
+    setIsArOverlayOpen(true);
+    triggerToast("Opening AR camera mode… Point at Hiro marker");
   };
 
   if (!dish) {
