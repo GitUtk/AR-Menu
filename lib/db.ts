@@ -14,13 +14,32 @@ export interface Order {
   created_at: string;
 }
 
-const dataDir = path.join(process.cwd(), "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// On Vercel serverless functions, root directory is read-only. Only /tmp is writable.
+const isVercel = !!process.env.VERCEL;
+
+function getDatabase(): InstanceType<typeof Database> {
+  const targetDir = isVercel ? "/tmp" : path.join(process.cwd(), "data");
+
+  if (!isVercel && !fs.existsSync(targetDir)) {
+    try {
+      fs.mkdirSync(targetDir, { recursive: true });
+    } catch {
+      // Fallback
+    }
+  }
+
+  const dbPath = path.join(targetDir, "orders.db");
+
+  try {
+    return new Database(dbPath);
+  } catch (err) {
+    // Fallback to /tmp if primary path is read-only
+    const fallbackPath = path.join("/tmp", "orders.db");
+    return new Database(fallbackPath);
+  }
 }
 
-const dbPath = path.join(dataDir, "orders.db");
-const db = new Database(dbPath);
+const db = getDatabase();
 
 // Initialize database schema
 db.exec(`
