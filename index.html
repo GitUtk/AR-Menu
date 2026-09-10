@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="description" content="Experience our dishes in Augmented Reality. Scan, view, and explore menu items in 3D right on your table." />
+  <meta name="keywords" content="AR menu, augmented reality restaurant, 3D food, restaurant menu, view in AR" />
+  <meta name="author" content="AR Restaurant" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="AR Restaurant Menu — View Our Dishes in 3D" />
+  <meta property="og:description" content="Experience our dishes in Augmented Reality. See it on your table before you order." />
+
+  <!-- Apple / PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title id="pageTitle">AR Restaurant Menu</title>
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json" id="structuredData">
+      {
+        "@context": "https://schema.org",
+        "@type": "Restaurant",
+        "name": "AR Restaurant",
+        "servesCuisine": "International",
+        "description": "Experience our dishes in Augmented Reality."
+      }
+    </script>
+
+  <!-- A-Frame & AR.js (In-Browser Camera Tracking) -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/app.css" />
+</head>
+
+<body>
+  <!-- ── Loading Screen ─────────────────────────────────────────────── -->
+  <div id="loadingScreen" class="dialog-overlay" role="status" aria-live="polite">
+    <div class="dialog-content" style="max-width: 280px; padding: 36px 24px;">
+      <div class="brand-icon" style="margin: 0 auto 16px; width: 48px; height: 48px; font-size: 20px;">AR</div>
+      <p style="font-size: 14px; font-weight: 600; color: hsl(var(--muted-foreground));">Preparing your experience…</p>
+    </div>
+  </div>
+
+  <!-- ── Error Screen ───────────────────────────────────────────────── -->
+  <div id="errorScreen" class="dialog-overlay hidden" role="alert">
+    <div class="dialog-content">
+      <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h1 class="dialog-title">Dish Not Found</h1>
+      <p class="dialog-desc">We couldn't find the dish you're looking for. Please return to our main menu.</p>
+      <a href="/" class="btn-shadcn btn-shadcn-primary" id="returnMenuBtn">Return to Menu</a>
+    </div>
+  </div>
+
+  <!-- ── Menu Landing Page (Shadcn UI Theme) ────────────────────────── -->
+  <section id="menuScreen" class="menu-screen hidden" aria-label="Restaurant Menu">
+
+    <!-- Header -->
+    <header class="site-header">
+      <div class="header-container">
+        <a href="/" class="brand-wrapper" aria-label="AR Restaurant Home">
+          <div class="brand-icon">AR</div>
+          <span class="brand-title">Restaurant <span class="brand-accent">Menu</span></span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <span class="badge badge-amber">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          Augmented Reality Experience
+        </span>
+        <h1 class="hero-title">Explore Our Culinary Dishes in <span style="color: hsl(var(--primary));">3D</span></h1>
+        <p class="hero-subtitle">Select a dish to view it in 3D — then project it right onto your dining table with AR.</p>
+      </div>
+    </div>
+
+    <!-- Category Filter Tabs (Shadcn Tabs) -->
+    <div class="filter-container">
+      <nav class="filter-tabs" id="menuFilters" aria-label="Menu Categories">
+        <button class="tab-pill active" data-filter="all" type="button">All Items</button>
+        <button class="tab-pill" data-filter="indian" type="button">Indian</button>
+        <button class="tab-pill" data-filter="italian" type="button">Italian</button>
+        <button class="tab-pill" data-filter="japanese" type="button">Japanese</button>
+        <button class="tab-pill" data-filter="signature" type="button">Signature</button>
+        <button class="tab-pill" data-filter="vegetarian" type="button">Vegetarian</button>
+      </nav>
+    </div>
+
+    <!-- Dish Grid -->
+    <div class="menu-grid-wrapper">
+      <div class="menu-grid" id="menuGrid" role="list">
+        <!-- Cards rendered dynamically by app.js -->
+      </div>
+      <div class="hidden" id="menuEmpty" style="text-align: center; padding: 48px; color: hsl(var(--muted-foreground));">
+        No dishes match this category filter.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>© <span class="menu-year"></span> AR Restaurant · Powered by WebXR & AR.js</p>
+    </footer>
+  </section>
+
+  <!-- ── Dish Viewer Screen (3D & AR) ───────────────────────────────── -->
+  <main id="app" class="app hidden" aria-label="AR Dish Viewer">
+
+    <!-- Header -->
+    <header class="site-header">
+      <div class="header-container">
+        <a href="/" class="brand-wrapper" aria-label="AR Restaurant Home">
+          <div class="brand-icon">AR</div>
+          <span class="brand-title">Restaurant <span class="brand-accent">3D</span></span>
+        </a>
+        <button class="btn-shadcn-icon" id="shareBtn" aria-label="Share this dish" title="Share" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 3D Model Viewer Section -->
+    <section class="viewer-section" aria-label="3D Model Viewer">
+      <div class="viewer-container">
+        <model-viewer id="modelViewer" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1.2" shadow-softness="0.8" exposure="1" environment-image="neutral" alt="3D view of dish" loading="eager" reveal="auto">
+        </model-viewer>
+      </div>
+    </section>
+
+    <!-- Dish Detail Card -->
+    <section class="dish-info-section">
+      <div class="dish-header-row">
+        <div>
+          <span class="badge badge-amber" id="dishBadge">Featured</span>
+          <h1 class="dish-main-title" id="dishTitle">Dish Name</h1>
+        </div>
+      </div>
+
+      <p class="dish-main-desc" id="dishDescription">Description of the dish recipe and key ingredients.</p>
+
+      <!-- Stats Grid -->
+      <div class="meta-grid">
+        <div class="meta-card" id="metaPrice">
+          <div class="meta-card-label">Price</div>
+          <div class="meta-card-val meta-value">—</div>
+        </div>
+        <div class="meta-card" id="metaTime">
+          <div class="meta-card-label">Prep Time</div>
+          <div class="meta-card-val meta-value">—</div>
+        </div>
+        <div class="meta-card" id="metaCalories">
+          <div class="meta-card-label">Calories</div>
+          <div class="meta-card-val meta-value">—</div>
+        </div>
+      </div>
+
+      <!-- Action Group -->
+      <div class="action-group">
+        <button class="btn-shadcn btn-shadcn-primary btn-ar-large" id="arButton" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          <span>View in AR on Your Table</span>
+        </button>
+
+        <div class="secondary-buttons">
+          <button class="btn-shadcn btn-shadcn-secondary" id="resetViewBtn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Reset Camera
+          </button>
+          <button class="btn-shadcn btn-shadcn-secondary" id="fullscreenBtn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            Fullscreen
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>© <span id="year"></span> AR Restaurant · Powered by WebXR & AR.js</p>
+    </footer>
+  </main>
+
+  <!-- ── Full-Screen AR Camera Overlay (A-Frame + AR.js) ─────────────── -->
+  <div id="arOverlay" class="ar-overlay hidden" role="dialog" aria-label="AR Camera Experience">
+    <div id="arSceneContainer" class="ar-scene-container"></div>
+
+    <div class="ar-overlay-ui">
+      <header class="ar-overlay-header">
+        <span class="badge badge-amber" style="padding: 6px 14px; background: rgba(9,9,11,0.85); backdrop-filter: blur(8px); display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          In-Browser AR Camera
+        </span>
+        <button id="closeArBtn" class="btn-shadcn-icon" type="button" aria-label="Close AR view">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <div class="ar-instruction-card">
+        <h3 style="font-family: var(--font-serif); font-size: 18px; margin-bottom: 6px;">Point camera at Hiro Marker</h3>
+        <p style="font-size: 13px; color: hsl(var(--muted-foreground)); margin-bottom: 16px;">Scan the marker on your table to view <strong id="arDishName" style="color: hsl(var(--foreground));">this dish</strong> and its 3D recipe ingredients.</p>
+        <button id="showMarkerBtn" class="btn-shadcn btn-shadcn-secondary" style="padding: 8px 16px; font-size: 13px;" type="button">View / Print Hiro Marker</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Hiro Marker Dialog (Shadcn Dialog) ─────────────────────────── -->
+  <div id="markerModal" class="dialog-overlay hidden" role="dialog" aria-label="Hiro Marker Guide">
+    <div class="dialog-content">
+      <button id="closeMarkerBtn" class="btn-shadcn-icon dialog-close" type="button" aria-label="Close dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h3 class="dialog-title">Hiro AR Target Marker</h3>
+      <p class="dialog-desc">Point your phone camera at this marker image to project the 3D food dish onto your surface:</p>
+      <div class="dialog-image-box">
+        <img src="hiro.png" alt="Hiro AR Marker Target" class="dialog-hiro-img" />
+      </div>
+      <p style="font-size: 12px; color: hsl(var(--muted-foreground));">Display this on another screen or print it on a paper menu card.</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification (Shadcn Toast) -->
+  <div id="toast" class="toast-shadcn" role="status" aria-live="polite"></div>
+
+  <!-- App entry point -->
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
