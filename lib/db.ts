@@ -1,9 +1,7 @@
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
+import mongoose from "mongoose";
 
 export interface Order {
-  id: number;
+  id: string;
   dish_id: string;
   dish_name: string;
   price: string;
@@ -14,46 +12,99 @@ export interface Order {
   created_at: string;
 }
 
-// On Vercel serverless functions, root directory is read-only. Only /tmp is writable.
-const isVercel = !!process.env.VERCEL;
-
-function getDatabase(): InstanceType<typeof Database> {
-  const targetDir = isVercel ? "/tmp" : path.join(process.cwd(), "data");
-
-  if (!isVercel && !fs.existsSync(targetDir)) {
-    try {
-      fs.mkdirSync(targetDir, { recursive: true });
-    } catch {
-      // Fallback
-    }
-  }
-
-  const dbPath = path.join(targetDir, "orders.db");
-
-  try {
-    return new Database(dbPath);
-  } catch (err) {
-    // Fallback to /tmp if primary path is read-only
-    const fallbackPath = path.join("/tmp", "orders.db");
-    return new Database(fallbackPath);
-  }
+interface MongooseGlobal {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
 
-const db = getDatabase();
+declare global {
+  var mongooseCache: MongooseGlobal | undefined;
+}
 
-// Initialize database schema
-db.exec(`
-  CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    dish_id TEXT NOT NULL,
-    dish_name TEXT NOT NULL,
-    price TEXT NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    table_number TEXT NOT NULL,
-    notes TEXT DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+if (!global.mongooseCache) {
+  global.mongooseCache = { conn: null, promise: null };
+}
 
-export default db;
+const cached = global.mongooseCache;
+
+// Mongoose Schemas & Models
+const OrderSchema = new mongoose.Schema(
+  {
+    dish_id: { type: String, required: true },
+    dish_name: { type: String, required: true },
+    price: { type: String, required: true },
+    quantity: { type: Number, required: true, default: 1 },
+    table_number: { type: String, required: true },
+    notes: { type: String, default: "" },
+    status: {
+      type: String,
+      enum: ["pending", "preparing", "served", "cancelled"],
+      default: "pending",
+    },
+  },
+  {
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
+  }
+);
+
+const AdminConfigSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: String, required: true },
+});
+
+export const OrderModel =
+  mongoose.models.Order || mongoose.model("Order", OrderSchema);
+
+export const AdminConfigModel =
+  mongoose.models.AdminConfig ||
+  mongoose.model("AdminConfig", AdminConfigSchema);
+
+export async function connectToDatabase() {
+  const mongodbUri = process.env.MONGODB_URI;
+
+  if (!mongodbUri) {
+    throw new Error(
+      "Please define the MONGODB_URI environment variable inside .env.local or Vercel environment variables."
+    );
+  }
+
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    cached.promise = mongoose.connect(mongodbUri, opts).then((m) => {
+      return m;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  // Seed default admin password hash if missing
+  try {
+    const defaultHash =
+      process.env.ADMIN_PASSWORD_HASH ||
+      "804b33542c3172aa05608e9d079e2a31726ace6dd4c78a130707862d76fbd30c";
+
+    const adminConfig = await AdminConfigModel.findOne({ key: "admin_password_hash" });
+    if (!adminConfig) {
+      await AdminConfigModel.create({
+        key: "admin_password_hash",
+        value: defaultHash,
+      });
+    }
+  } catch (err) {
+    console.error("Error seeding admin config:", err);
+  }
+
+  return cached.conn;
+}

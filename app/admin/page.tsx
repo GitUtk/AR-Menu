@@ -135,7 +135,7 @@ export default function AdminPage() {
     }
   };
 
-  const updateStatus = async (id: number, newStatus: Order["status"]) => {
+  const updateStatus = async (id: string | number, newStatus: Order["status"]) => {
     try {
       const res = await fetch("/api/orders", {
         method: "PATCH",
@@ -154,7 +154,7 @@ export default function AdminPage() {
     }
   };
 
-  const deleteOrder = async (id: number | "all") => {
+  const deleteOrder = async (id: string | number | "all") => {
     if (id === "all" && !confirm("Are you sure you want to clear all orders?")) {
       return;
     }
@@ -325,7 +325,7 @@ export default function AdminPage() {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-zinc-400">
-              Real-time table orders powered by SQLite database
+              Real-time table orders powered by MongoDB Atlas
             </p>
           </div>
 

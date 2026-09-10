@@ -1,20 +1,35 @@
 import crypto from "crypto";
+import { connectToDatabase, AdminConfigModel } from "./db";
 
-// SHA-256 hash of password "utkarsh"
-export const ADMIN_PASSWORD_HASH =
+// SHA-256 hash of password "utkarsh" fallback
+export const DEFAULT_ADMIN_PASSWORD_HASH =
+  process.env.ADMIN_PASSWORD_HASH ||
   "804b33542c3172aa05608e9d079e2a31726ace6dd4c78a130707862d76fbd30c";
 
 // Secret for signing session cookies
-export const SESSION_SECRET = "ar_restaurant_admin_secret_key_2026";
+export const SESSION_SECRET =
+  process.env.SESSION_SECRET || "ar_restaurant_admin_secret_key_2026";
 
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password.trim()).digest("hex");
 }
 
-export function verifyPassword(password: string): boolean {
+export async function verifyPassword(password: string): Promise<boolean> {
   if (!password) return false;
   const hash = hashPassword(password);
-  return hash === ADMIN_PASSWORD_HASH;
+
+  try {
+    await connectToDatabase();
+    const adminConfig = await AdminConfigModel.findOne({ key: "admin_password_hash" });
+    if (adminConfig && adminConfig.value) {
+      return hash === adminConfig.value;
+    }
+  } catch (err) {
+    console.error("Error checking password in DB:", err);
+  }
+
+  // Fallback check against default hash
+  return hash === DEFAULT_ADMIN_PASSWORD_HASH;
 }
 
 export function generateSessionToken(): string {
