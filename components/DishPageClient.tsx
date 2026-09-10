@@ -9,6 +9,7 @@ import { DishDetailCard } from "@/components/DishDetailCard";
 import { ModelViewer, resetViewerCamera, toggleViewerFullscreen, triggerNativeAR } from "@/components/ModelViewer";
 import { ArCameraOverlay } from "@/components/ArCameraOverlay";
 import { HiroMarkerModal } from "@/components/HiroMarkerModal";
+import { OrderModal } from "@/components/OrderModal";
 import { Toast, ToastMessage } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function DishPageClient({ id }: DishPageClientProps) {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isArOverlayOpen, setIsArOverlayOpen] = useState(false);
   const [isMarkerModalOpen, setIsMarkerModalOpen] = useState(false);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const triggerToast = (message: string, type: "info" | "success" | "warning" = "info") => {
     setToast({ id: Date.now().toString(), message, type });
@@ -93,6 +95,7 @@ export function DishPageClient({ id }: DishPageClientProps) {
               <DishDetailCard
                 dish={dish}
                 onLaunchAR={handleLaunchAR}
+                onOrder={() => setIsOrderModalOpen(true)}
                 onResetCamera={() => {
                   resetViewerCamera();
                   triggerToast("Camera view reset");
@@ -116,6 +119,13 @@ export function DishPageClient({ id }: DishPageClientProps) {
       <HiroMarkerModal
         isOpen={isMarkerModalOpen}
         onClose={() => setIsMarkerModalOpen(false)}
+      />
+
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        dish={dish}
+        onClose={() => setIsOrderModalOpen(false)}
+        onSuccess={(msg) => triggerToast(msg, "success")}
       />
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />

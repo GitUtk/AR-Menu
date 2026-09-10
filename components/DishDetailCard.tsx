@@ -4,11 +4,12 @@ import React from "react";
 import { Dish } from "@/lib/dishes";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Box, RotateCcw, Maximize2, Flame, Clock, IndianRupee } from "lucide-react";
+import { Box, RotateCcw, Maximize2, Flame, Clock, IndianRupee, UtensilsCrossed } from "lucide-react";
 
 interface DishDetailCardProps {
   dish: Dish;
   onLaunchAR: () => void;
+  onOrder?: () => void;
   onResetCamera: () => void;
   onToggleFullscreen: () => void;
 }
@@ -16,6 +17,7 @@ interface DishDetailCardProps {
 export function DishDetailCard({
   dish,
   onLaunchAR,
+  onOrder,
   onResetCamera,
   onToggleFullscreen,
 }: DishDetailCardProps) {
@@ -78,14 +80,27 @@ export function DishDetailCard({
 
       {/* Primary & Secondary Actions */}
       <div className="space-y-3 pt-2">
-        <Button
-          size="lg"
-          onClick={onLaunchAR}
-          className="w-full gap-2.5 bg-white text-zinc-950 hover:bg-zinc-200 text-base font-bold py-6 shadow-xl shadow-white/10"
-        >
-          <Box className="h-5 w-5 text-zinc-950" />
-          <span>View in AR on Your Table</span>
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {onOrder && (
+            <Button
+              size="lg"
+              onClick={onOrder}
+              className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-extrabold text-base py-6 shadow-xl shadow-emerald-500/10"
+            >
+              <UtensilsCrossed className="h-5 w-5 text-zinc-950" />
+              <span>Order Now</span>
+            </Button>
+          )}
+
+          <Button
+            size="lg"
+            onClick={onLaunchAR}
+            className="w-full gap-2 bg-white text-zinc-950 hover:bg-zinc-200 text-base font-bold py-6 shadow-xl shadow-white/10"
+          >
+            <Box className="h-5 w-5 text-zinc-950" />
+            <span>View in AR</span>
+          </Button>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Button

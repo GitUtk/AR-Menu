@@ -3,14 +3,16 @@
 import React, { useState } from "react";
 import { Dish } from "@/lib/dishes";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { Box, ArrowRight } from "lucide-react";
+import { Button } from "./ui/button";
+import { Box, ArrowRight, UtensilsCrossed } from "lucide-react";
 
 interface DishCardProps {
   dish: Dish;
   onSelect: (dish: Dish) => void;
+  onOrder?: (dish: Dish, e: React.MouseEvent) => void;
 }
 
-export function DishCard({ dish, onSelect }: DishCardProps) {
+export function DishCard({ dish, onSelect, onOrder }: DishCardProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -52,16 +54,33 @@ export function DishCard({ dish, onSelect }: DishCardProps) {
       </div>
 
       {/* Card Footer */}
-      <CardFooter className="p-5 pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
-        <div className="flex items-center gap-2">
+      <CardFooter className="p-5 pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400 gap-2">
+        <div className="flex items-center gap-1.5 text-[11px]">
           <span>{dish.prepTime}</span>
           <span>·</span>
           <span>{dish.calories}</span>
         </div>
 
-        <div className="flex items-center gap-1 text-xs font-semibold text-zinc-200 group-hover:translate-x-0.5 transition-transform">
-          <span>View 3D</span>
-          <ArrowRight className="h-3.5 w-3.5 text-zinc-400" />
+        <div className="flex items-center gap-2">
+          {onOrder && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOrder(dish, e);
+              }}
+              className="gap-1 px-3 py-1 text-xs bg-white text-zinc-950 hover:bg-zinc-200 font-bold rounded-lg shadow-sm"
+            >
+              <UtensilsCrossed className="h-3 w-3 text-zinc-950" />
+              <span>Order</span>
+            </Button>
+          )}
+
+          <div className="flex items-center gap-1 text-xs font-semibold text-zinc-300 group-hover:text-white transition-colors">
+            <span>3D</span>
+            <ArrowRight className="h-3.5 w-3.5 text-zinc-400" />
+          </div>
         </div>
       </CardFooter>
     </Card>

@@ -6,6 +6,8 @@ import { DISH_LIST, CATEGORIES, Dish } from "@/lib/dishes";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishCard } from "@/components/DishCard";
+import { OrderModal } from "@/components/OrderModal";
+import { Toast, ToastMessage } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Search, AlertCircle } from "lucide-react";
 
@@ -14,6 +16,12 @@ export default function Home() {
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedOrderDish, setSelectedOrderDish] = useState<Dish | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const triggerToast = (message: string, type: "info" | "success" | "warning" = "info") => {
+    setToast({ id: Date.now().toString(), message, type });
+  };
 
   const handleSelectDish = (dish: Dish) => {
     router.push(`/dish/${dish.id}`);
@@ -90,6 +98,7 @@ export default function Home() {
                   key={dish.id}
                   dish={dish}
                   onSelect={handleSelectDish}
+                  onOrder={(d) => setSelectedOrderDish(d)}
                 />
               ))}
             </div>
@@ -117,6 +126,15 @@ export default function Home() {
       </main>
 
       <Footer />
+
+      <OrderModal
+        isOpen={!!selectedOrderDish}
+        dish={selectedOrderDish}
+        onClose={() => setSelectedOrderDish(null)}
+        onSuccess={(msg) => triggerToast(msg, "success")}
+      />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }
