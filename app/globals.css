@@ -89,6 +89,16 @@ body {
 /* =========================================================================
    Full-Screen AR Overlay & Video Overrides (AR.js + A-Frame)
    ========================================================================= */
+html:not(.ar-mode-active),
+body:not(.ar-mode-active) {
+  width: 100% !important;
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  position: relative !important;
+}
+
 html.ar-mode-active,
 body.ar-mode-active {
   overflow: hidden !important;

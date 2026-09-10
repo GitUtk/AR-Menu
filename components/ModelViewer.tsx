@@ -61,9 +61,13 @@ export function ModelViewer({ dish, onLoaded, onError }: ModelViewerProps) {
   return (
     <div className="relative w-full h-[360px] sm:h-[480px] rounded-2xl overflow-hidden bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 shadow-2xl flex items-center justify-center">
       {isLoading && (
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full border border-zinc-800/80 bg-zinc-950/90 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur-md shadow-lg">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-300" />
-          <span className="font-medium">Loading 3D Model…</span>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-zinc-950/80 backdrop-blur-sm transition-opacity duration-300">
+          <div className="p-3 rounded-full bg-zinc-900 border border-zinc-800 shadow-xl">
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
+          </div>
+          <span className="text-xs font-semibold text-zinc-300 tracking-wide">
+            Loading 3D Model…
+          </span>
         </div>
       )}
 

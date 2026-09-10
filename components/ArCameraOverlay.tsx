@@ -67,10 +67,8 @@ export function ArCameraOverlay({
       clearInterval(cleanupInterval);
       document.documentElement.classList.remove("ar-mode-active");
       document.body.classList.remove("ar-mode-active");
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.marginLeft = "";
-      document.body.style.marginTop = "";
+      document.documentElement.removeAttribute("style");
+      document.body.removeAttribute("style");
 
       if (containerRef.current) {
         containerRef.current.innerHTML = "";

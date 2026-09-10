@@ -17,8 +17,12 @@ export function Header({ onHomeClick }: HeaderProps) {
           onClick={onHomeClick}
           className="flex items-center gap-3 text-left focus:outline-none group"
         >
-          <div className="h-9 w-9 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center font-black text-xs text-white shadow-md group-hover:border-zinc-500 transition-colors">
-            AR
+          <div className="relative h-9 w-9 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 flex items-center justify-center p-0.5 shadow-lg group-hover:border-zinc-500 group-hover:shadow-zinc-500/20 transition-all duration-300">
+            <img
+              src="/images/logo.png"
+              alt="AR Restaurant Emblem"
+              className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+            />
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
