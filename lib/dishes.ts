@@ -105,6 +105,23 @@ export const DISHES: Record<string, Dish> = {
     rotation: "0 0 0",
     position: "0 0 0",
   },
+  dosa: {
+    id: "dosa",
+    name: "Crispy Masala Dosa",
+    model: "/models/dosa.glb",
+    iosSrc: `${CDN}/models/dosa.usdz`,
+    poster: "/images/dishes/dosa.png",
+    description:
+      "Crispy golden fermented rice and lentil crepe stuffed with spiced potato masala, served with authentic coconut chutney and piping hot sambar.",
+    price: "₹220",
+    prepTime: "15 min",
+    calories: "490 kcal",
+    badge: "South Indian Special",
+    tags: ["indian", "vegetarian"],
+    arScale: "5.0 5.0 5.0",
+    rotation: "0 0 0",
+    position: "0 0 0",
+  },
 };
 
 export const DISH_LIST = Object.values(DISHES);

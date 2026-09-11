@@ -90,9 +90,15 @@ export function ArCameraOverlay({
 
     containerRef.current.innerHTML = `
       <a-scene embedded background="transparent: true" arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;">
+        <!-- High-Intensity 360 Light Rig -->
+        <a-light type="ambient" color="#ffffff" intensity="4.0"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.5" position="2 6 3"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.5" position="-2 6 -3"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.0" position="0 -5 0"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.0" position="5 0 0"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.0" position="-5 0 0"></a-light>
+
         <a-marker preset="hiro" id="hiroMarker">
-          <a-entity light="type: ambient; intensity: 1.6;"></a-entity>
-          <a-entity light="type: directional; intensity: 1.4;" position="1 4 2"></a-entity>
           <a-entity
             id="arDishEntity"
             gltf-model="${dish.model}"
@@ -106,6 +112,30 @@ export function ArCameraOverlay({
     `;
 
     setTimeout(() => {
+      const entity = document.getElementById("arDishEntity");
+      if (entity) {
+        entity.addEventListener("model-loaded", () => {
+          const mesh = (entity as any).getObject3D("mesh");
+          if (mesh) {
+            mesh.traverse((node: any) => {
+              if (node.isMesh && node.material) {
+                // Ensure materials absorb full lighting and don't render black
+                if (Array.isArray(node.material)) {
+                  node.material.forEach((m: any) => {
+                    m.roughness = 0.6;
+                    m.metalness = 0.0;
+                    m.needsUpdate = true;
+                  });
+                } else {
+                  node.material.roughness = 0.6;
+                  node.material.metalness = 0.0;
+                  node.material.needsUpdate = true;
+                }
+              }
+            });
+          }
+        });
+      }
       window.dispatchEvent(new Event("resize"));
     }, 200);
   }, [isOpen, dish, scriptsLoaded]);

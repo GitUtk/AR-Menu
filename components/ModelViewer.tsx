@@ -84,9 +84,9 @@ export function ModelViewer({ dish, onLoaded, onError }: ModelViewerProps) {
         camera-controls
         touch-action="pan-y"
         auto-rotate
-        shadow-intensity="1.2"
+        shadow-intensity="0.4"
         shadow-softness="0.8"
-        exposure="1"
+        exposure="1.8"
         loading="eager"
         reveal="auto"
         environment-image="neutral"

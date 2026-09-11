@@ -1,25 +1,20 @@
 import { NextResponse } from "next/server";
-import { Client } from "@gradio/client";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import path from "path";
 import fs from "fs";
 import os from "os";
 
+const execFileAsync = promisify(execFile);
+
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minute timeout for 3D model generation
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function POST(req: Request) {
   let tempFilePath: string | null = null;
   try {
     const formData = await req.formData();
     const imageFile = formData.get("image") as File | null;
-    const apiKey = (formData.get("api_key") as string) || process.env.HF_TOKEN || "";
-    const ssSamplingSteps = Number(formData.get("ss_sampling_steps") || 12);
-    const ssGuidanceStrength = Number(formData.get("ss_guidance_strength") || 7.5);
-    const slatSamplingSteps = Number(formData.get("slat_sampling_steps") || 12);
-    const slatGuidanceStrength = Number(formData.get("slat_guidance_strength") || 3);
-    const seed = Number(formData.get("seed") || 0);
 
     if (!imageFile) {
       return NextResponse.json(
@@ -30,147 +25,60 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const mimeType = imageFile.type || "image/png";
-    const base64DataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
-    // Use /tmp directory for serverless environments (Vercel)
-    try {
-      const tempDir = os.tmpdir();
-      const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "");
-      tempFilePath = path.join(tempDir, `temp_input_${Date.now()}_${cleanFileName}`);
-      fs.writeFileSync(tempFilePath, buffer);
-    } catch (err) {
-      console.warn("Skipping temp file write in read-only filesystem:", err);
-    }
+    // Save temporary upload image in system /tmp directory
+    const tempDir = os.tmpdir();
+    const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "");
+    tempFilePath = path.join(tempDir, `input_${Date.now()}_${cleanFileName}`);
+    fs.writeFileSync(tempFilePath, buffer);
 
-    const fileDataInput = {
-      path: base64DataUrl,
-      url: base64DataUrl,
-      orig_name: imageFile.name || "food_item.png",
-      meta: { _type: "gradio.FileData" },
-    };
+    const scriptPath = path.join(process.cwd(), "generate_3d.py");
 
-    const tokenToUse = (apiKey || "").trim();
-
-    // Connect to Hugging Face TRELLIS Space with HF_TOKEN authorization
-    const connectOpts: any = tokenToUse
-      ? {
-          token: tokenToUse as `hf_${string}`,
-          headers: { Authorization: `Bearer ${tokenToUse}` },
-        }
-      : {};
-
-    const client = await Client.connect("trellis-community/TRELLIS", connectOpts);
-
-    // Submit to TRELLIS /generate_and_extract_glb endpoint
-    const job = client.submit("/generate_and_extract_glb", {
-      image: fileDataInput,
-      multiimages: [],
-      seed: seed,
-      ss_guidance_strength: ssGuidanceStrength,
-      ss_sampling_steps: ssSamplingSteps,
-      slat_guidance_strength: slatGuidanceStrength,
-      slat_sampling_steps: slatSamplingSteps,
-      multiimage_algo: "stochastic",
-      mesh_simplify: 0.95,
-      texture_size: 1024,
+    console.log(`Invoking Python 3D generator script: python3 ${scriptPath} ${tempFilePath}`);
+    
+    // Execute Python gradio_client generation script
+    const { stdout, stderr } = await execFileAsync("python3", [scriptPath, tempFilePath], {
+      timeout: 300000,
+      env: {
+        ...process.env,
+        PATH: process.env.PATH,
+      },
     });
 
-    let outputData: any = null;
-    let jobError: string | null = null;
-
-    for await (const msg of job) {
-      if (msg.type === "data" && msg.data && msg.data.length > 0) {
-        outputData = msg.data;
-      } else if (msg.type === "status" && msg.stage === "error") {
-        jobError = String(msg.message || msg.title || "TRELLIS generation job error occurred.");
-      }
+    if (stderr) {
+      console.log("Python 3D generator stderr:", stderr);
     }
 
-    if (!outputData && jobError) {
-      return NextResponse.json(
-        { success: false, error: jobError },
-        { status: 500 }
-      );
-    }
-
-    if (!outputData || !outputData.length) {
-      return NextResponse.json(
-        { success: false, error: "TRELLIS space did not return a valid GLB model file." },
-        { status: 500 }
-      );
-    }
-
-    // Find GLB file in returned outputs
-    const glbFileInfo =
-      outputData.find((item: any) => {
-        const p = item?.url || item?.path || (typeof item === "string" ? item : "");
-        return p.toLowerCase().includes(".glb");
-      }) ||
-      outputData[1] ||
-      outputData[2] ||
-      outputData[0];
-
-    const glbUrl = typeof glbFileInfo === "string" ? glbFileInfo : glbFileInfo?.url || glbFileInfo?.path;
-
-    if (!glbUrl) {
-      return NextResponse.json(
-        { success: false, error: "Failed to locate generated .GLB file URL from TRELLIS output." },
-        { status: 500 }
-      );
-    }
-
-    let publicModelPath = glbUrl;
-    const glbFileName = `model_${Date.now()}.glb`;
-
-    // Try local download & save to public/generated-models/ if filesystem is writable
-    try {
-      const generatedModelsDir = path.join(process.cwd(), "public", "generated-models");
-      if (!fs.existsSync(generatedModelsDir)) {
-        fs.mkdirSync(generatedModelsDir, { recursive: true });
-      }
-
-      const fetchOpts: any = tokenToUse ? { headers: { Authorization: `Bearer ${tokenToUse}` } } : {};
-      let glbRes = await fetch(glbUrl, fetchOpts);
-      if (!glbRes.ok) glbRes = await fetch(glbUrl);
-
-      if (glbRes.ok) {
-        const glbBuffer = Buffer.from(await glbRes.arrayBuffer());
-        const localGlbPath = path.join(generatedModelsDir, glbFileName);
-        fs.writeFileSync(localGlbPath, glbBuffer);
-        publicModelPath = `/generated-models/${glbFileName}`;
-      }
-    } catch (fsErr) {
-      console.warn("Read-only filesystem detected (Vercel Serverless). Returning remote GLB URL:", glbUrl);
-      publicModelPath = glbUrl;
-    }
-
-    // Clean up temporary input image in /tmp
-    if (tempFilePath) {
+    // Clean up temp image
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
       try {
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        fs.unlinkSync(tempFilePath);
       } catch {}
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "3D GLB model generated successfully!",
-      model_url: publicModelPath,
-      filename: glbFileName,
-      remote_url: glbUrl,
-    });
+    const lines = stdout.trim().split("\n");
+    const jsonLine = lines.find((line) => line.startsWith("{")) || lines[lines.length - 1];
+    const result = JSON.parse(jsonLine);
+
+    if (result.success) {
+      return NextResponse.json(result);
+    } else {
+      return NextResponse.json(
+        { success: false, error: result.error || "Failed to generate 3D model." },
+        { status: 500 }
+      );
+    }
   } catch (error: any) {
-    console.error("TRELLIS generation error stack:", error?.stack || error);
-    if (tempFilePath) {
+    console.error("3D model generation error:", error);
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
       try {
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        fs.unlinkSync(tempFilePath);
       } catch {}
     }
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || error?.title || "Failed to generate 3D model from Hugging Face TRELLIS space.",
-        details: String(error),
+        error: error?.message || "Failed to execute Python 3D model generator.",
       },
       { status: 500 }
     );
