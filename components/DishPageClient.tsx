@@ -81,7 +81,7 @@ export function DishPageClient({ id }: DishPageClientProps) {
         <Header onHomeClick={handleBackToMenu} />
         <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="p-4 rounded-full bg-zinc-900 border border-zinc-800 mb-4">
-            <AlertTriangle className="h-10 w-10 text-amber-400" />
+            <AlertTriangle className="h-10 w-10 text-zinc-400" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Dish Not Found</h1>
           <p className="text-sm text-zinc-400 max-w-sm mb-6">

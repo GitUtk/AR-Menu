@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase, DishModel } from "@/lib/db";
 import { Dish } from "@/lib/dishes";
+import { deleteCloudinaryAsset } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +120,15 @@ export async function DELETE(req: Request) {
     }
 
     await connectToDatabase();
-    await DishModel.deleteOne({ id: id.toLowerCase() });
+    const dish = await DishModel.findOne({ id: id.toLowerCase() });
+
+    if (dish) {
+      // Clean up linked Cloudinary assets (food photo & 3D GLB model)
+      if (dish.poster) await deleteCloudinaryAsset(dish.poster);
+      if (dish.model) await deleteCloudinaryAsset(dish.model);
+
+      await DishModel.deleteOne({ id: id.toLowerCase() });
+    }
 
     return NextResponse.json({
       success: true,

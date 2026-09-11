@@ -68,12 +68,12 @@ export function RazorpayModal({
 
   return (
     <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl border border-blue-900/40 bg-zinc-950 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Razorpay Top Header Bar */}
-        <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-zinc-950 p-4 border-b border-blue-900/30 flex items-center justify-between">
+        <div className="bg-zinc-900 p-4 border-b border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            {/* Razorpay Blue Badge */}
-            <div className="h-8 w-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-blue-600/30">
+            {/* Razorpay Minimal Badge */}
+            <div className="h-8 w-8 rounded-xl bg-white text-zinc-950 flex items-center justify-center font-black text-sm shadow-md">
               R
             </div>
             <div>
@@ -81,7 +81,7 @@ export function RazorpayModal({
                 <span className="text-sm font-black text-white tracking-wide">
                   Razorpay
                 </span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
                   TEST MODE
                 </span>
               </div>
@@ -103,14 +103,14 @@ export function RazorpayModal({
         {isProcessing ? (
           <div className="p-8 text-center space-y-4">
             <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 animate-ping" />
-              <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
+              <div className="absolute inset-0 rounded-full border-4 border-zinc-700 animate-ping" />
+              <Loader2 className="w-10 h-10 text-white animate-spin" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white mb-1">
                 Processing UPI Payment
               </h3>
-              <p className="text-xs text-blue-300 font-mono animate-pulse">
+              <p className="text-xs text-zinc-400 font-mono animate-pulse">
                 {processingStage}
               </p>
             </div>
@@ -121,7 +121,7 @@ export function RazorpayModal({
         ) : isSuccess ? (
           /* Success State */
           <div className="p-8 text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
+            <div className="mx-auto w-14 h-14 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white shadow-xl">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
@@ -130,7 +130,7 @@ export function RazorpayModal({
               </h3>
               <p className="text-xs text-zinc-400 font-mono">Txn ID: {txnId}</p>
             </div>
-            <p className="text-xs text-emerald-400 font-medium">
+            <p className="text-xs text-zinc-300 font-medium">
               Placing table order for Table {tableNumber}…
             </p>
           </div>
@@ -140,7 +140,7 @@ export function RazorpayModal({
             {/* Order Summary Strip */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs">
               <span className="text-zinc-400 font-medium">Ordering: <strong className="text-white">{dishName}</strong></span>
-              <span className="text-zinc-400">Table <strong className="text-amber-400 font-mono">{tableNumber}</strong></span>
+              <span className="text-zinc-400">Table <strong className="text-white font-mono">{tableNumber}</strong></span>
             </div>
 
             {/* UPI Sub-Tabs */}
@@ -150,7 +150,7 @@ export function RazorpayModal({
                 onClick={() => setActiveTab("qr")}
                 className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                   activeTab === "qr"
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-white text-zinc-950 font-bold shadow-md"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -162,7 +162,7 @@ export function RazorpayModal({
                 onClick={() => setActiveTab("vpa")}
                 className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                   activeTab === "vpa"
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-white text-zinc-950 font-bold shadow-md"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -186,43 +186,43 @@ export function RazorpayModal({
                     {/* Corner Position Detection Blocks */}
                     <rect x="5" y="5" width="25" height="25" fill="#09090b" rx="4" />
                     <rect x="9" y="9" width="17" height="17" fill="white" rx="2" />
-                    <rect x="13" y="13" width="9" height="9" fill="#2563eb" rx="1" />
+                    <rect x="13" y="13" width="9" height="9" fill="#09090b" rx="1" />
 
                     <rect x="70" y="5" width="25" height="25" fill="#09090b" rx="4" />
                     <rect x="74" y="9" width="17" height="17" fill="white" rx="2" />
-                    <rect x="78" y="13" width="9" height="9" fill="#2563eb" rx="1" />
+                    <rect x="78" y="13" width="9" height="9" fill="#09090b" rx="1" />
 
                     <rect x="5" y="70" width="25" height="25" fill="#09090b" rx="4" />
                     <rect x="9" y="74" width="17" height="17" fill="white" rx="2" />
-                    <rect x="13" y="78" width="9" height="9" fill="#2563eb" rx="1" />
+                    <rect x="13" y="78" width="9" height="9" fill="#09090b" rx="1" />
 
                     {/* Data Pattern Matrix */}
                     <rect x="35" y="10" width="6" height="6" fill="#09090b" />
-                    <rect x="45" y="10" width="6" height="6" fill="#2563eb" />
+                    <rect x="45" y="10" width="6" height="6" fill="#09090b" />
                     <rect x="55" y="10" width="6" height="6" fill="#09090b" />
-                    <rect x="35" y="22" width="6" height="6" fill="#2563eb" />
+                    <rect x="35" y="22" width="6" height="6" fill="#09090b" />
                     <rect x="50" y="22" width="12" height="6" fill="#09090b" />
                     <rect x="10" y="35" width="12" height="6" fill="#09090b" />
-                    <rect x="25" y="35" width="6" height="6" fill="#2563eb" />
+                    <rect x="25" y="35" width="6" height="6" fill="#09090b" />
                     <rect x="35" y="35" width="12" height="12" fill="#09090b" />
-                    <rect x="55" y="35" width="12" height="6" fill="#2563eb" />
+                    <rect x="55" y="35" width="12" height="6" fill="#09090b" />
                     <rect x="72" y="35" width="18" height="6" fill="#09090b" />
-                    <rect x="10" y="45" width="6" height="18" fill="#2563eb" />
+                    <rect x="10" y="45" width="6" height="18" fill="#09090b" />
                     <rect x="22" y="45" width="6" height="6" fill="#09090b" />
-                    <rect x="52" y="50" width="12" height="12" fill="#2563eb" />
+                    <rect x="52" y="50" width="12" height="12" fill="#09090b" />
                     <rect x="70" y="45" width="10" height="10" fill="#09090b" />
-                    <rect x="85" y="45" width="8" height="8" fill="#2563eb" />
+                    <rect x="85" y="45" width="8" height="8" fill="#09090b" />
                     <rect x="35" y="55" width="12" height="6" fill="#09090b" />
                     <rect x="10" y="65" width="18" height="4" fill="#09090b" />
-                    <rect x="35" y="70" width="8" height="20" fill="#2563eb" rx="2" />
+                    <rect x="35" y="70" width="8" height="20" fill="#09090b" rx="2" />
                     <rect x="48" y="70" width="14" height="8" fill="#09090b" />
-                    <rect x="68" y="70" width="8" height="8" fill="#2563eb" />
+                    <rect x="68" y="70" width="8" height="8" fill="#09090b" />
                     <rect x="80" y="70" width="14" height="14" fill="#09090b" rx="2" />
                     <rect x="48" y="82" width="28" height="12" fill="#09090b" rx="2" />
                   </svg>
                   {/* Center UPI Badge */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="bg-blue-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow-lg border border-white">
+                    <span className="bg-zinc-950 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow-lg border border-zinc-700">
                       UPI
                     </span>
                   </div>
@@ -251,7 +251,7 @@ export function RazorpayModal({
                     placeholder="e.g. mobile@upi, name@okaxis"
                     value={vpaInput}
                     onChange={(e) => setVpaInput(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400 transition-all font-mono"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold uppercase">
                     UPI
@@ -268,11 +268,11 @@ export function RazorpayModal({
               <Button
                 type="button"
                 onClick={() => handleSimulatePayment(vpaInput || "user@upi")}
-                className="w-full py-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/20 gap-2"
+                className="w-full py-6 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-extrabold text-sm shadow-xl gap-2"
               >
-                <Sparkles className="h-4 w-4 text-blue-200" />
+                <Sparkles className="h-4 w-4 text-zinc-950" />
                 <span>Simulate Successful Payment (₹{amount})</span>
-                <ArrowRight className="h-4 w-4 text-blue-200 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-zinc-950 ml-auto" />
               </Button>
 
               <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1 pt-1">
@@ -284,7 +284,7 @@ export function RazorpayModal({
                   Cancel Order
                 </button>
                 <span className="flex items-center gap-1">
-                  <Lock className="h-3 w-3 text-emerald-500" /> 256-bit Encrypted
+                  <Lock className="h-3 w-3 text-zinc-400" /> 256-bit Encrypted
                 </span>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Dish } from "@/lib/dishes";
 import { RazorpayModal } from "./RazorpayModal";
+import { generateAndDownloadReceiptPdf } from "@/lib/generateReceiptPdf";
 import {
   Utensils,
   Minus,
@@ -101,8 +102,12 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
   const basePriceNum = parseInt(dish.price.replace(/[^0-9]/g, ""), 10) || 0;
   const totalPrice = basePriceNum * quantity;
 
-  // Execute Order Submission to Backend
-  const executeOrderSubmission = async (method: "upi" | "cash", status: "paid" | "pending_cash") => {
+  // Execute Order Submission to Backend & Auto Download Receipt PDF
+  const executeOrderSubmission = async (
+    method: "upi" | "cash",
+    status: "paid" | "pending_cash",
+    txnId?: string
+  ) => {
     setError("");
     setIsSubmitting(true);
 
@@ -131,8 +136,29 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
 
       if (data.success) {
         const assignedToken = data.table_token || cleanToken;
+        const orderIdStr = data.order?.id || data.order_id;
+
+        // Auto Generate & Download PDF Receipt
+        try {
+          generateAndDownloadReceiptPdf({
+            orderId: orderIdStr,
+            dishName: dish.name,
+            price: dish.price,
+            quantity,
+            tableNumber: trimmedTable,
+            tableToken: assignedToken,
+            lockDurationMins: lockDuration,
+            paymentMethod: method,
+            paymentStatus: status,
+            txnId,
+            notes: notes.trim(),
+          });
+        } catch (pdfErr) {
+          console.error("Failed to generate PDF receipt:", pdfErr);
+        }
+
         onSuccess?.(
-          `Order placed for Table ${tableNumber}! [Table Token: ${assignedToken}] (${method === "upi" ? "Paid via UPI" : "Cash on delivery"})`
+          `Order placed for Table ${tableNumber}! Receipt PDF downloaded. [Table Token: ${assignedToken}]`
         );
         setTableNumber("");
         setUserToken("");
@@ -179,7 +205,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
 
   const handleRazorpaySuccess = (txnId: string) => {
     setIsRazorpayOpen(false);
-    executeOrderSubmission("upi", "paid");
+    executeOrderSubmission("upi", "paid", txnId);
   };
 
   return (
@@ -192,31 +218,31 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
       >
         <form onSubmit={handleInitialFormSubmit} className="space-y-4 pt-2">
           {error && (
-            <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-xs text-red-300 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Table Lock Active Warning & Token Entry Prompt */}
           {isTableLocked && !isTokenVerified && (
-            <div className="p-3.5 rounded-xl bg-amber-950/70 border border-amber-800/80 text-xs text-amber-200 space-y-3 shadow-lg">
+            <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 space-y-3 shadow-lg">
               <div className="flex items-start gap-2.5">
-                <Lock className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <Lock className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-white mb-0.5">
                     Table {tableNumber} is Currently Locked ({lockDuration}-Min Lock)
                   </p>
-                  <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
                     An active order is in progress for Table {tableNumber}. Enter the 5-digit Table Token to add items to this table.
                   </p>
                 </div>
               </div>
 
               {/* 5-Digit Capital Token Entry Input */}
-              <div className="pt-2 border-t border-amber-800/60">
-                <label className="block text-[11px] font-bold text-amber-300 mb-1 flex items-center gap-1">
-                  <Key className="h-3.5 w-3.5 text-amber-400" />
+              <div className="pt-2 border-t border-zinc-800">
+                <label className="block text-[11px] font-bold text-zinc-300 mb-1 flex items-center gap-1">
+                  <Key className="h-3.5 w-3.5 text-zinc-400" />
                   <span>Enter 5-Digit Table Token</span>
                 </label>
                 <input
@@ -225,7 +251,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                   placeholder="e.g. A8K9P"
                   value={userToken}
                   onChange={(e) => setUserToken(e.target.value.toUpperCase())}
-                  className="w-full rounded-xl border border-amber-600/60 bg-zinc-950 px-4 py-2 text-sm text-white font-mono uppercase font-black placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-400 tracking-widest text-center shadow-inner"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-white font-mono uppercase font-black placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400 tracking-widest text-center shadow-inner"
                 />
               </div>
             </div>
@@ -233,8 +259,8 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
 
           {/* Token Verified Banner */}
           {isTokenVerified && (
-            <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800/80 text-xs text-emerald-300 flex items-center gap-2 font-mono">
-              <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+            <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 flex items-center gap-2 font-mono">
+              <ShieldCheck className="h-4 w-4 text-zinc-300 shrink-0" />
               <span>
                 <strong className="text-white font-bold">Token [{userToken}] Verified!</strong> You can now add items to Table {tableNumber}.
               </span>
@@ -260,19 +286,19 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-zinc-300">
-                Table Number <span className="text-amber-400">*</span>
+                Table Number <span className="text-zinc-400">*</span>
               </label>
               {isLockChecking ? (
                 <span className="text-[11px] text-zinc-400 flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> Checking status…
                 </span>
               ) : isTokenVerified ? (
-                <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Token Access Granted
+                <span className="text-[11px] text-zinc-300 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-zinc-400" /> Token Access Granted
                 </span>
               ) : tableNumber && !isTableLocked ? (
-                <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Table Available
+                <span className="text-[11px] text-zinc-300 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-zinc-400" /> Table Available
                 </span>
               ) : null}
             </div>
@@ -282,11 +308,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
               value={tableNumber}
               onChange={(e) => setTableNumber(e.target.value)}
               required
-              className={`w-full rounded-xl border bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${
-                isTableLocked && !isTokenVerified
-                  ? "border-amber-500/80 focus:ring-amber-500"
-                  : "border-zinc-800 focus:ring-zinc-400"
-              }`}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400 transition-all"
             />
           </div>
 
@@ -302,7 +324,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                 size="sm"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
-                className="h-9 w-9 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-200"
+                className="h-9 w-9 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -314,7 +336,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                 variant="outline"
                 size="sm"
                 onClick={() => setQuantity((q) => q + 1)}
-                className="h-9 w-9 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-200"
+                className="h-9 w-9 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -324,7 +346,7 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
           {/* Dynamic Table Lock Duration Option (20, 30, 40, 60 Mins) */}
           <div>
             <label className="block text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-amber-400" />
+              <Clock className="h-3.5 w-3.5 text-zinc-400" />
               <span>Table Lock Duration (Reserve Table)</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -335,8 +357,8 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                   onClick={() => setLockDuration(mins)}
                   className={`py-2 px-1 rounded-xl text-xs font-semibold border transition-all text-center ${
                     lockDuration === mins
-                      ? "border-amber-500 bg-amber-500/20 text-amber-300 font-bold shadow-md shadow-amber-500/10"
-                      : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                      ? "border-zinc-700 bg-zinc-800 text-white font-bold shadow-sm"
+                      : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                   }`}
                 >
                   {mins} mins
@@ -360,19 +382,19 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                 onClick={() => setPaymentMethod("upi")}
                 className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between space-y-2 ${
                   paymentMethod === "upi"
-                    ? "border-blue-500 bg-blue-950/30 ring-1 ring-blue-500"
-                    : "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800/80"
+                    ? "border-zinc-700 bg-zinc-800/90 text-white ring-1 ring-zinc-700"
+                    : "border-zinc-800 bg-zinc-950/60 hover:bg-zinc-900"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-950 border border-blue-500/40">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800">
                     <span className="text-xs font-black tracking-widest text-white">
                       UPI
                     </span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-pulse" />
                   </div>
                   {paymentMethod === "upi" && (
-                    <CheckCircle2 className="h-4 w-4 text-blue-400" />
+                    <CheckCircle2 className="h-4 w-4 text-white" />
                   )}
                 </div>
                 <div>
@@ -387,16 +409,16 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
                 onClick={() => setPaymentMethod("cash")}
                 className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between space-y-2 ${
                   paymentMethod === "cash"
-                    ? "border-emerald-500 bg-emerald-950/30 ring-1 ring-emerald-500"
-                    : "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800/80"
+                    ? "border-zinc-700 bg-zinc-800/90 text-white ring-1 ring-zinc-700"
+                    : "border-zinc-800 bg-zinc-950/60 hover:bg-zinc-900"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="p-1 rounded bg-zinc-950 border border-emerald-500/40 text-emerald-400">
+                  <div className="p-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
                     <Banknote className="h-4 w-4" />
                   </div>
                   {paymentMethod === "cash" && (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <CheckCircle2 className="h-4 w-4 text-white" />
                   )}
                 </div>
                 <div>
@@ -435,20 +457,16 @@ export function OrderModal({ isOpen, dish, onClose, onSuccess }: OrderModalProps
             <Button
               type="submit"
               disabled={isSubmitting || (isTableLocked && !isTokenVerified)}
-              className={`gap-2 font-bold px-6 py-2.5 rounded-xl shadow-lg transition-all ${
-                paymentMethod === "upi"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/20"
-                  : "bg-white text-zinc-950 hover:bg-zinc-200"
-              }`}
+              className="gap-2 font-bold px-6 py-2.5 rounded-xl shadow-lg transition-all bg-white hover:bg-zinc-200 text-zinc-950 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-zinc-950" />
                   <span>Placing Order…</span>
                 </>
               ) : paymentMethod === "upi" ? (
                 <>
-                  <QrCode className="h-4 w-4 text-white" />
+                  <QrCode className="h-4 w-4 text-zinc-950" />
                   <span>Proceed to UPI Payment</span>
                 </>
               ) : (

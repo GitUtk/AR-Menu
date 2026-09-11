@@ -85,7 +85,7 @@ export function DishDetailCard({
             <Button
               size="lg"
               onClick={onOrder}
-              className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-extrabold text-base py-6 shadow-xl shadow-emerald-500/10"
+              className="w-full gap-2 bg-white hover:bg-zinc-200 text-zinc-950 font-extrabold text-base py-6 shadow-xl"
             >
               <UtensilsCrossed className="h-5 w-5 text-zinc-950" />
               <span>Order Now</span>
@@ -95,9 +95,9 @@ export function DishDetailCard({
           <Button
             size="lg"
             onClick={onLaunchAR}
-            className="w-full gap-2 bg-white text-zinc-950 hover:bg-zinc-200 text-base font-bold py-6 shadow-xl shadow-white/10"
+            className="w-full gap-2 bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 text-base font-bold py-6 shadow-xl"
           >
-            <Box className="h-5 w-5 text-zinc-950" />
+            <Box className="h-5 w-5 text-white" />
             <span>View in AR</span>
           </Button>
         </div>
