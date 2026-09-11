@@ -8,6 +8,7 @@ import { Order } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toast, ToastMessage } from "@/components/ui/toast";
+import { AiModelGeneratorSection } from "@/components/AiModelGeneratorSection";
 import {
   UtensilsCrossed,
   Clock,
@@ -40,6 +41,9 @@ export default function AdminPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Admin View State
+  const [activeAdminTab, setActiveAdminTab] = useState<"orders" | "generate_3d">("orders");
 
   // Orders State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -414,9 +418,44 @@ export default function AdminPage() {
             </Button>
           </div>
         </div>
+        {/* Navigation Tabs Bar */}
+        <div className="flex items-center gap-2 border-b border-zinc-800 pb-4">
+          <button
+            onClick={() => setActiveAdminTab("orders")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeAdminTab === "orders"
+                ? "bg-white text-zinc-950 shadow-lg"
+                : "bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white"
+            }`}
+          >
+            <ChefHat className="h-4 w-4" />
+            <span>Kitchen Orders Dashboard</span>
+            {activeOrders > 0 && (
+              <Badge className="bg-amber-500 text-zinc-950 font-black text-[10px] px-1.5 py-0">
+                {activeOrders}
+              </Badge>
+            )}
+          </button>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <button
+            onClick={() => setActiveAdminTab("generate_3d")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeAdminTab === "generate_3d"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20"
+                : "bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Sparkles className="h-4 w-4 text-blue-300" />
+            <span>AI 3D Model Generator (TRELLIS)</span>
+          </button>
+        </div>
+
+        {activeAdminTab === "generate_3d" ? (
+          <AiModelGeneratorSection triggerToast={triggerToast} />
+        ) : (
+          <>
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 flex items-center justify-between shadow-xl">
             <div>
               <span className="text-xs text-zinc-400 font-medium block mb-1">
@@ -641,6 +680,8 @@ export default function AdminPage() {
               When customers place an order from their table, orders will automatically appear here in real time.
             </p>
           </div>
+        )}
+        </>
         )}
       </main>
 
