@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Client } from "@gradio/client";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minute timeout for 3D model generation
@@ -9,6 +10,7 @@ export const maxDuration = 300; // 5 minute timeout for 3D model generation
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function POST(req: Request) {
+  let tempFilePath: string | null = null;
   try {
     const formData = await req.formData();
     const imageFile = formData.get("image") as File | null;
@@ -31,15 +33,15 @@ export async function POST(req: Request) {
     const mimeType = imageFile.type || "image/png";
     const base64DataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
-    // Save temporary input image for reference
-    const tempDir = path.join(process.cwd(), "public", "uploads");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
+    // Use /tmp directory for serverless environments (Vercel)
+    try {
+      const tempDir = os.tmpdir();
+      const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "");
+      tempFilePath = path.join(tempDir, `temp_input_${Date.now()}_${cleanFileName}`);
+      fs.writeFileSync(tempFilePath, buffer);
+    } catch (err) {
+      console.warn("Skipping temp file write in read-only filesystem:", err);
     }
-
-    const tempFileName = `temp_input_${Date.now()}_${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-    const tempFilePath = path.join(tempDir, tempFileName);
-    fs.writeFileSync(tempFilePath, buffer);
 
     const fileDataInput = {
       path: base64DataUrl,
@@ -49,7 +51,6 @@ export async function POST(req: Request) {
     };
 
     const tokenToUse = (apiKey || "").trim();
-    console.log("TRELLIS generation starting. Token available:", Boolean(tokenToUse));
 
     // Connect to Hugging Face TRELLIS Space with HF_TOKEN authorization
     const connectOpts: any = tokenToUse
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
     const client = await Client.connect("trellis-community/TRELLIS", connectOpts);
 
-    // Submit to TRELLIS /generate_and_extract_glb endpoint using event listener job stream
+    // Submit to TRELLIS /generate_and_extract_glb endpoint
     const job = client.submit("/generate_and_extract_glb", {
       image: fileDataInput,
       multiimages: [],
@@ -76,7 +77,6 @@ export async function POST(req: Request) {
     });
 
     const res: any = await job;
-    console.log("Job awaited res:", JSON.stringify(res, null, 2));
     const outputData: any = res?.data;
 
     if (!outputData || !outputData.length) {
@@ -85,8 +85,6 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-
-    console.log("TRELLIS outputData received:", JSON.stringify(outputData, null, 2));
 
     // Find GLB file in returned outputs
     const glbFileInfo =
@@ -107,32 +105,37 @@ export async function POST(req: Request) {
       );
     }
 
-    // Download generated GLB model and save to public/generated-models/
-    const fetchOpts: any = tokenToUse ? { headers: { Authorization: `Bearer ${tokenToUse}` } } : {};
-    let glbRes = await fetch(glbUrl, fetchOpts);
-    if (!glbRes.ok) {
-      glbRes = await fetch(glbUrl);
-    }
-    if (!glbRes.ok) {
-      throw new Error(`Failed to fetch generated GLB file from ${glbUrl} (status ${glbRes.status})`);
-    }
-    const glbBuffer = Buffer.from(await glbRes.arrayBuffer());
-
-    const generatedModelsDir = path.join(process.cwd(), "public", "generated-models");
-    if (!fs.existsSync(generatedModelsDir)) {
-      fs.mkdirSync(generatedModelsDir, { recursive: true });
-    }
-
+    let publicModelPath = glbUrl;
     const glbFileName = `model_${Date.now()}.glb`;
-    const localGlbPath = path.join(generatedModelsDir, glbFileName);
-    fs.writeFileSync(localGlbPath, glbBuffer);
 
-    // Clean up temporary input image
+    // Try local download & save to public/generated-models/ if filesystem is writable
     try {
-      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    } catch {}
+      const generatedModelsDir = path.join(process.cwd(), "public", "generated-models");
+      if (!fs.existsSync(generatedModelsDir)) {
+        fs.mkdirSync(generatedModelsDir, { recursive: true });
+      }
 
-    const publicModelPath = `/generated-models/${glbFileName}`;
+      const fetchOpts: any = tokenToUse ? { headers: { Authorization: `Bearer ${tokenToUse}` } } : {};
+      let glbRes = await fetch(glbUrl, fetchOpts);
+      if (!glbRes.ok) glbRes = await fetch(glbUrl);
+
+      if (glbRes.ok) {
+        const glbBuffer = Buffer.from(await glbRes.arrayBuffer());
+        const localGlbPath = path.join(generatedModelsDir, glbFileName);
+        fs.writeFileSync(localGlbPath, glbBuffer);
+        publicModelPath = `/generated-models/${glbFileName}`;
+      }
+    } catch (fsErr) {
+      console.warn("Read-only filesystem detected (Vercel Serverless). Returning remote GLB URL:", glbUrl);
+      publicModelPath = glbUrl;
+    }
+
+    // Clean up temporary input image in /tmp
+    if (tempFilePath) {
+      try {
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      } catch {}
+    }
 
     return NextResponse.json({
       success: true,
@@ -143,6 +146,11 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("TRELLIS generation error stack:", error?.stack || error);
+    if (tempFilePath) {
+      try {
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      } catch {}
+    }
     return NextResponse.json(
       {
         success: false,
