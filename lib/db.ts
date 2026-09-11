@@ -9,7 +9,12 @@ export interface Order {
   table_number: string;
   notes?: string;
   status: "pending" | "preparing" | "served" | "cancelled";
+  payment_method: "upi" | "cash";
+  payment_status: "paid" | "pending_cash" | "failed";
+  lock_duration_mins: number;
+  table_token?: string;
   created_at: string;
+  unlocked_at?: string;
 }
 
 interface MongooseGlobal {
@@ -27,6 +32,18 @@ if (!global.mongooseCache) {
 
 const cached = global.mongooseCache;
 
+/**
+ * Generate a 5-digit capital alphanumeric token (e.g. "A8K9P")
+ */
+export function generateTableToken(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 chars (no ambiguous 0,O,1,I)
+  let token = "";
+  for (let i = 0; i < 5; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
 // Mongoose Schemas & Models
 const OrderSchema = new mongoose.Schema(
   {
@@ -41,6 +58,25 @@ const OrderSchema = new mongoose.Schema(
       enum: ["pending", "preparing", "served", "cancelled"],
       default: "pending",
     },
+    payment_method: {
+      type: String,
+      enum: ["upi", "cash"],
+      default: "cash",
+    },
+    payment_status: {
+      type: String,
+      enum: ["paid", "pending_cash", "failed"],
+      default: "pending_cash",
+    },
+    lock_duration_mins: {
+      type: Number,
+      default: 30,
+    },
+    table_token: {
+      type: String,
+      default: "",
+    },
+    unlocked_at: { type: Date, default: null },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
@@ -107,4 +143,91 @@ export async function connectToDatabase() {
   }
 
   return cached.conn;
+}
+
+/**
+ * Check if a table is locked for the specified lock duration due to an active order.
+ * If the user inputs the valid 5-digit capital table_token, allow them to place additional orders.
+ */
+export async function checkTableLockStatus(
+  tableNumber: string,
+  userToken?: string
+): Promise<{
+  locked: boolean;
+  remainingMinutes: number;
+  remainingSeconds: number;
+  lockDurationMins: number;
+  tokenVerified: boolean;
+  tableToken?: string;
+  orderTime?: string;
+  orderId?: string;
+}> {
+  if (!tableNumber) {
+    return {
+      locked: false,
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+      lockDurationMins: 30,
+      tokenVerified: false,
+    };
+  }
+
+  await connectToDatabase();
+
+  const formattedTable = String(tableNumber).trim().toLowerCase();
+
+  // Find candidate active orders for this table that haven't been cancelled or manually unlocked
+  const candidateOrders = await OrderModel.find({
+    table_number: { $regex: new RegExp(`^${formattedTable}$`, "i") },
+    status: { $ne: "cancelled" },
+    $or: [{ unlocked_at: null }, { unlocked_at: { $exists: false } }],
+  }).sort({ created_at: -1 });
+
+  let activeOrder: any = null;
+  let remainingMs = 0;
+
+  for (const order of candidateOrders) {
+    const lockMins = order.lock_duration_mins || 30;
+    const orderTime = new Date(order.created_at || order.createdAt).getTime();
+    const lockWindowMs = lockMins * 60 * 1000;
+    const elapsed = Date.now() - orderTime;
+
+    if (elapsed < lockWindowMs) {
+      activeOrder = order;
+      remainingMs = lockWindowMs - elapsed;
+      break;
+    }
+  }
+
+  if (!activeOrder) {
+    return {
+      locked: false,
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+      lockDurationMins: 30,
+      tokenVerified: false,
+    };
+  }
+
+  const cleanUserToken = userToken ? userToken.trim().toUpperCase() : "";
+  const activeTableToken = activeOrder.table_token ? activeOrder.table_token.trim().toUpperCase() : "";
+  const tokenVerified = !!(
+    cleanUserToken &&
+    activeTableToken &&
+    cleanUserToken === activeTableToken
+  );
+
+  const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+  const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
+
+  return {
+    locked: !tokenVerified,
+    remainingMinutes,
+    remainingSeconds,
+    lockDurationMins: activeOrder.lock_duration_mins || 30,
+    tokenVerified,
+    tableToken: activeOrder.table_token,
+    orderTime: activeOrder.created_at || activeOrder.createdAt,
+    orderId: activeOrder._id.toString(),
+  };
 }

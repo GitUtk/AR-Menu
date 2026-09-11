@@ -20,11 +20,15 @@ import {
   ChefHat,
   Sparkles,
   Lock,
+  Unlock,
   Eye,
   EyeOff,
   LogOut,
   Loader2,
   ShieldCheck,
+  QrCode,
+  Banknote,
+  Key,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -42,6 +46,38 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  // Real-time ticking 1-second countdown clock for table lock timers
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getRemainingLockTime = (order: Order) => {
+    if (order.unlocked_at) return null;
+    if (order.status === "cancelled") return null;
+
+    const lockDurationMins = order.lock_duration_mins || 30;
+    const createdMs = new Date(order.created_at).getTime();
+    const expireMs = createdMs + lockDurationMins * 60 * 1000;
+    const remainingMs = expireMs - now;
+
+    if (remainingMs <= 0) return null;
+
+    const totalSecs = Math.floor(remainingMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+
+    return {
+      mins,
+      secs: secs < 10 ? `0${secs}` : `${secs}`,
+      formatted: `${mins}m ${secs < 10 ? `0${secs}` : secs}s`,
+      lockDurationMins,
+    };
+  };
 
   const triggerToast = (message: string, type: "info" | "success" | "warning" = "info") => {
     setToast({ id: Date.now().toString(), message, type });
@@ -167,14 +203,29 @@ export default function AdminPage() {
       if (data.success) {
         if (id === "all") {
           setOrders([]);
-          triggerToast("All orders cleared", "info");
-        } else {
-          setOrders((prev) => prev.filter((o) => o.id !== id));
-          triggerToast(`Order #${id} deleted`, "info");
         }
       }
     } catch {
       triggerToast("Failed to delete order", "warning");
+    }
+  };
+
+  const unlockTable = async (id: string | number) => {
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "unlock" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, unlocked_at: new Date().toISOString() } : o))
+        );
+        triggerToast(`Table unlocked for order #${id}`, "success");
+      }
+    } catch {
+      triggerToast("Failed to unlock table", "warning");
     }
   };
 
@@ -475,15 +526,66 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Special Notes if any */}
-                  {order.notes && (
-                    <div className="mt-3 p-2.5 rounded-lg bg-zinc-950/80 border border-zinc-800/80 text-xs text-amber-300 flex items-start gap-2">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">
-                        <strong className="text-amber-200 font-medium">Note:</strong> {order.notes}
-                      </p>
-                    </div>
-                  )}
+                  {/* Payment Method & Live Real-Time Lock Countdown Badges */}
+                  {(() => {
+                    const lockTime = getRemainingLockTime(order);
+                    return (
+                      <>
+                        <div className="flex flex-wrap items-center gap-2 mt-2 mb-3">
+                          {order.payment_method === "upi" ? (
+                            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 gap-1 text-[10px]">
+                              <QrCode className="h-3 w-3 text-blue-400" />
+                              <span>UPI PAID</span>
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 gap-1 text-[10px]">
+                              <Banknote className="h-3 w-3 text-emerald-400" />
+                              <span>CASH ON DELIVERY</span>
+                            </Badge>
+                          )}
+
+                          {order.table_token && (
+                            <Badge className="bg-amber-950/80 text-amber-300 border-amber-800/80 gap-1 text-[10px] font-mono font-bold tracking-wider">
+                              <Key className="h-3 w-3 text-amber-400" />
+                              <span>TOKEN: {order.table_token}</span>
+                            </Badge>
+                          )}
+
+                          {lockTime ? (
+                            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 gap-1 text-[10px] font-mono animate-pulse">
+                              <Clock className="h-3 w-3 text-amber-400" />
+                              <span>Unlocks in {lockTime.formatted} ({lockTime.lockDurationMins}m Lock)</span>
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-zinc-800 text-zinc-400 border-zinc-700 text-[10px]">
+                              <span>UNLOCKED</span>
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Special Notes if any */}
+                        {order.notes && (
+                          <div className="mt-2 p-2.5 rounded-lg bg-zinc-950/80 border border-zinc-800/80 text-xs text-amber-300 flex items-start gap-2">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">
+                              <strong className="text-amber-200 font-medium">Note:</strong> {order.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Manual Unlock Table Action for Staff */}
+                        {lockTime && (
+                          <button
+                            onClick={() => unlockTable(order.id)}
+                            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 hover:bg-amber-900/50 transition-colors text-xs font-semibold flex items-center justify-center gap-1.5"
+                          >
+                            <Unlock className="h-3.5 w-3.5 text-amber-400" />
+                            <span>Unlock Table {order.table_number} Now ({lockTime.formatted} left)</span>
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Status Action Buttons */}
