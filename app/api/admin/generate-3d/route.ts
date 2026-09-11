@@ -76,8 +76,23 @@ export async function POST(req: Request) {
       texture_size: 1024,
     });
 
-    const res: any = await job;
-    const outputData: any = res?.data;
+    let outputData: any = null;
+    let jobError: string | null = null;
+
+    for await (const msg of job) {
+      if (msg.type === "data" && msg.data && msg.data.length > 0) {
+        outputData = msg.data;
+      } else if (msg.type === "status" && msg.stage === "error") {
+        jobError = String(msg.message || msg.title || "TRELLIS generation job error occurred.");
+      }
+    }
+
+    if (!outputData && jobError) {
+      return NextResponse.json(
+        { success: false, error: jobError },
+        { status: 500 }
+      );
+    }
 
     if (!outputData || !outputData.length) {
       return NextResponse.json(
