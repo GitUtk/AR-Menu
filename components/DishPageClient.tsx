@@ -6,6 +6,7 @@ import { Dish } from "@/lib/dishes";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishDetailCard } from "@/components/DishDetailCard";
+import { DishDetailSkeleton } from "@/components/DishCardSkeleton";
 import { ModelViewer, resetViewerCamera, toggleViewerFullscreen, triggerNativeAR } from "@/components/ModelViewer";
 import { ArCameraOverlay } from "@/components/ArCameraOverlay";
 import { HiroMarkerModal } from "@/components/HiroMarkerModal";
@@ -22,9 +23,11 @@ interface DishPageClientProps {
 export function DishPageClient({ id }: DishPageClientProps) {
   const router = useRouter();
   const [dish, setDish] = useState<Dish | null>(null);
+  const [isLoadingDish, setIsLoadingDish] = useState<boolean>(true);
 
   useEffect(() => {
     if (id) {
+      setIsLoadingDish(true);
       fetch("/api/dishes")
         .then((res) => res.json())
         .then((data) => {
@@ -35,7 +38,10 @@ export function DishPageClient({ id }: DishPageClientProps) {
             if (found) setDish(found);
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingDish(false);
+        });
     }
   }, [id]);
 
@@ -56,6 +62,18 @@ export function DishPageClient({ id }: DishPageClientProps) {
     setIsArOverlayOpen(true);
     triggerToast("Opening AR camera mode… Point at Hiro marker");
   };
+
+  if (isLoadingDish) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col justify-between">
+        <Header onHomeClick={handleBackToMenu} />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">
+          <DishDetailSkeleton />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!dish) {
     return (

@@ -24,6 +24,11 @@ export const metadata: Metadata = {
       "Experience our dishes in Augmented Reality. See it on your table before you order.",
     type: "website",
   },
+  icons: {
+    icon: "/images/logo.png",
+    shortcut: "/favicon.ico",
+    apple: "/images/logo.png",
+  },
 };
 
 export default function RootLayout({

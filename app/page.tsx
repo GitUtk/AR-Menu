@@ -6,6 +6,7 @@ import { CATEGORIES, Dish } from "@/lib/dishes";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishCard } from "@/components/DishCard";
+import { DishCardSkeleton } from "@/components/DishCardSkeleton";
 import { OrderModal } from "@/components/OrderModal";
 import { Toast, ToastMessage } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -17,10 +18,12 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [isLoadingDishes, setIsLoadingDishes] = useState<boolean>(true);
   const [selectedOrderDish, setSelectedOrderDish] = useState<Dish | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
+    setIsLoadingDishes(true);
     fetch("/api/dishes")
       .then((res) => res.json())
       .then((data) => {
@@ -28,7 +31,10 @@ export default function Home() {
           setDishes(data.dishes);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsLoadingDishes(false);
+      });
   }, []);
 
   const triggerToast = (message: string, type: "info" | "success" | "warning" = "info") => {
@@ -102,8 +108,14 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Dish Grid */}
-          {filteredDishes.length > 0 ? (
+          {/* Dish Grid: Skeletons while loading */}
+          {isLoadingDishes ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <DishCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredDishes.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDishes.map((dish) => (
                 <DishCard

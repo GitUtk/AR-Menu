@@ -34,9 +34,8 @@ export function Header({ onHomeClick }: HeaderProps) {
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              AR Restaurant <span className="text-zinc-400 font-normal">Menu</span>
+              AR <span className="text-zinc-400 font-normal">Menu</span>
             </span>
-            <span className="text-[10px] text-zinc-500 font-medium">3D & WebXR Experience</span>
           </div>
         </button>
 

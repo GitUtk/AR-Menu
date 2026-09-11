@@ -24,6 +24,7 @@ import {
   IndianRupee,
   Layers,
 } from "lucide-react";
+import { DishCardSkeleton } from "./DishCardSkeleton";
 import { Dish } from "@/lib/dishes";
 
 interface AiModelGeneratorSectionProps {
@@ -661,7 +662,13 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
           </Button>
         </div>
 
-        {menuItems.length === 0 ? (
+        {isLoadingMenu ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <DishCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : menuItems.length === 0 ? (
           <div className="text-center py-10 text-zinc-500 space-y-2">
             <Utensils className="h-10 w-10 mx-auto text-zinc-600 stroke-[1.5]" />
             <p className="text-xs text-zinc-400">No dishes found in menu database.</p>
