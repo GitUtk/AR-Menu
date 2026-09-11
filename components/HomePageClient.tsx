@@ -92,12 +92,12 @@ export function HomePageClient() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center justify-center overflow-x-auto pb-2 gap-2 scrollbar-none">
+          <div className="flex items-center justify-start sm:justify-center overflow-x-auto pb-2 px-1 gap-2 scrollbar-none max-w-full">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-medium transition-all shrink-0 ${
                   activeCategory === cat.id
                     ? "bg-white text-zinc-950 font-bold shadow-md shadow-white/5"
                     : "bg-zinc-900/70 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"

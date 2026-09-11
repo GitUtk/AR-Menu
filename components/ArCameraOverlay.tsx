@@ -56,10 +56,10 @@ export function ArCameraOverlay({
     document.body.classList.add("ar-mode-active");
 
     const cleanupInterval = setInterval(() => {
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.marginLeft = "";
-      document.body.style.marginTop = "";
+      if (!document.body.classList.contains("ar-mode-active")) {
+        document.body.removeAttribute("style");
+        document.documentElement.removeAttribute("style");
+      }
     }, 100);
 
     return () => {
@@ -67,6 +67,8 @@ export function ArCameraOverlay({
       clearInterval(cleanupInterval);
       document.documentElement.classList.remove("ar-mode-active");
       document.body.classList.remove("ar-mode-active");
+      
+      // Completely strip inline style attributes injected by AR.js
       document.documentElement.removeAttribute("style");
       document.body.removeAttribute("style");
 
@@ -74,14 +76,20 @@ export function ArCameraOverlay({
         containerRef.current.innerHTML = "";
       }
 
-      // Stop camera streams and clean up video elements
-      const videoElements = document.querySelectorAll("video, #arjs-video");
+      // Stop camera streams and clean up video/canvas elements
+      const videoElements = document.querySelectorAll("video, #arjs-video, .a-canvas, a-scene");
       videoElements.forEach((v: any) => {
         if (v.srcObject && typeof v.srcObject.getTracks === "function") {
           v.srcObject.getTracks().forEach((track: any) => track.stop());
         }
-        v.remove();
+        if (v.parentNode) {
+          v.parentNode.removeChild(v);
+        } else if (typeof v.remove === "function") {
+          v.remove();
+        }
       });
+
+      window.dispatchEvent(new Event("resize"));
     };
   }, [isOpen, dish]);
 

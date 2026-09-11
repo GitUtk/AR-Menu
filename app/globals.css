@@ -92,11 +92,19 @@ body {
 html:not(.ar-mode-active),
 body:not(.ar-mode-active) {
   width: 100% !important;
+  max-width: 100vw !important;
   min-height: 100vh !important;
   height: auto !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   position: relative !important;
+  transform: none !important;
 }
 
 html.ar-mode-active,
