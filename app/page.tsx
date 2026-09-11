@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DISH_LIST, CATEGORIES, Dish } from "@/lib/dishes";
+import { CATEGORIES, Dish } from "@/lib/dishes";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishCard } from "@/components/DishCard";
@@ -16,8 +16,20 @@ export default function Home() {
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [dishes, setDishes] = useState<Dish[]>([]);
   const [selectedOrderDish, setSelectedOrderDish] = useState<Dish | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dishes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.dishes)) {
+          setDishes(data.dishes);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const triggerToast = (message: string, type: "info" | "success" | "warning" = "info") => {
     setToast({ id: Date.now().toString(), message, type });
@@ -31,7 +43,7 @@ export default function Home() {
     router.push("/");
   };
 
-  const filteredDishes = DISH_LIST.filter((dish) => {
+  const filteredDishes = dishes.filter((dish) => {
     const matchesCategory =
       activeCategory === "all" || dish.tags.includes(activeCategory);
     const matchesSearch =

@@ -446,7 +446,7 @@ export default function AdminPage() {
             }`}
           >
             <Sparkles className="h-4 w-4 text-blue-300" />
-            <span>AI 3D Model Generator (TRELLIS)</span>
+            <span>Add & Edit Menu Items</span>
           </button>
         </div>
 

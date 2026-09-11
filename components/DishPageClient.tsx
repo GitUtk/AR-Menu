@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DISHES, Dish } from "@/lib/dishes";
+import { Dish } from "@/lib/dishes";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishDetailCard } from "@/components/DishDetailCard";
@@ -21,7 +21,23 @@ interface DishPageClientProps {
 
 export function DishPageClient({ id }: DishPageClientProps) {
   const router = useRouter();
-  const dish = id ? DISHES[id.toLowerCase()] : null;
+  const [dish, setDish] = useState<Dish | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      fetch("/api/dishes")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.dishes)) {
+            const found = data.dishes.find(
+              (d: Dish) => d.id.toLowerCase() === id.toLowerCase()
+            );
+            if (found) setDish(found);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [id]);
 
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isArOverlayOpen, setIsArOverlayOpen] = useState(false);
