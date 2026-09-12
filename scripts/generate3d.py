@@ -71,7 +71,7 @@ def generate_glb(
         seed = random.randint(0, MAX_SEED)
 
     print(f"Connecting to {SPACE_ID} ...")
-    client = Client(SPACE_ID, token=hf_token)
+    client = Client(SPACE_ID, token=hf_token, timeout=600.0)
 
     # The Space creates a per-session temp folder via `demo.load(start_session)`,
     # which normally fires when a browser loads the page. Pure API access via

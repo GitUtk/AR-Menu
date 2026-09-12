@@ -6,6 +6,7 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import os from "os";
+import { calculateProportionalArScale } from "@/lib/modelScale";
 
 const execFileAsync = promisify(execFile);
 
@@ -153,11 +154,14 @@ export async function POST(req: Request) {
             throw new Error(cloudGlb?.error?.message || "Cloudinary GLB upload failed.");
           }
 
+          const calculatedScale = calculateProportionalArScale(glbBuffer, imageFile.name, []);
+
           return NextResponse.json({
             success: true,
             model_url: cloudGlb.secure_url,
             image_url: imageUrl,
             filename: outFileName,
+            ar_scale: calculatedScale,
             provider: "Cloudinary + HuggingFace TRELLIS",
           });
         }
@@ -212,6 +216,7 @@ export async function POST(req: Request) {
 
     if (fs.existsSync(outFilePath)) {
       const fileBuf = fs.readFileSync(outFilePath);
+      const calculatedScale = calculateProportionalArScale(fileBuf, imageFile.name, []);
       const cloudGlb = await uploadGlbToCloudinary(fileBuf, outFileName);
 
       // Clean output temp file
@@ -224,6 +229,7 @@ export async function POST(req: Request) {
           success: true,
           model_url: cloudGlb.secure_url,
           filename: outFileName,
+          ar_scale: calculatedScale,
         });
       }
     }

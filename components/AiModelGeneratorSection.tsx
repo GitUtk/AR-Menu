@@ -155,6 +155,66 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
     }
   };
 
+  const handleSelectSamplePhoto = async (name: string, url: string) => {
+    setError("");
+    setPreviewUrl(url);
+    setGeneratedModelUrl(null);
+    if (!dishName) setDishName(name);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const file = new File([blob], `${name.toLowerCase().replace(/\s+/g, "_")}.png`, {
+        type: blob.type || "image/png",
+      });
+      setSelectedFile(file);
+    } catch {
+      setSelectedFile(null);
+    }
+  };
+
+  const handleGenerate3D = async () => {
+    if (!selectedFile && !previewUrl) {
+      setError("Please select or upload a food image file first.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError("");
+    setGenerationStage("Connecting to TRELLIS & synthesizing 3D model…");
+
+    try {
+      const formData = new FormData();
+      if (selectedFile) {
+        formData.append("image", selectedFile);
+      } else if (previewUrl) {
+        const imgRes = await fetch(previewUrl);
+        const imgBlob = await imgRes.blob();
+        formData.append("image", imgBlob, "food_photo.png");
+      }
+      formData.append("texture_size", "1024");
+      formData.append("mesh_simplify", "0.95");
+
+      const res = await fetch("/api/admin/generate-3d", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success && data.model_url) {
+        setGeneratedModelUrl(data.model_url);
+        if (data.filename) setGeneratedFilename(data.filename);
+        triggerToast("3D Model synthesized & ready for preview!", "success");
+      } else {
+        setError(data.error || "Failed to synthesize 3D model.");
+      }
+    } catch {
+      setError("Network error while generating 3D model.");
+    } finally {
+      setIsGenerating(false);
+      setGenerationStage("");
+    }
+  };
+
   const handleSaveItemToMenu = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -181,6 +241,7 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
     try {
       let finalModelUrl = generatedModelUrl;
       let finalPosterUrl = previewUrl;
+      let finalArScale: string | undefined = undefined;
 
       // Auto-process background removal and Cloudinary storage if a new image file was uploaded
       if (selectedFile) {
@@ -199,6 +260,7 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
           if (genData.success) {
             if (genData.model_url) finalModelUrl = genData.model_url;
             if (genData.image_url) finalPosterUrl = genData.image_url;
+            if (genData.ar_scale) finalArScale = genData.ar_scale;
           }
         } catch (err) {
           console.warn("3D model auto-generation note:", err);
@@ -224,6 +286,7 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
           tags: [selectedTag],
           poster: finalPosterUrl,
           model: finalModelUrl,
+          arScale: finalArScale,
         }),
       });
 
@@ -366,7 +429,7 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
               </div>
 
               {/* Upload Food Photo Dropzone */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="block text-xs font-semibold text-zinc-300">
                   Food Photo (Cloudinary Stored) *
                 </label>
@@ -385,6 +448,51 @@ export function AiModelGeneratorSection({ triggerToast }: AiModelGeneratorSectio
                     </span>
                   </div>
                 </div>
+
+                {/* Sample Test Photos */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] text-zinc-400 font-medium block">
+                    Or test with sample photos:
+                  </span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                    {[
+                      { name: "Burger", url: "https://res.cloudinary.com/dakh7ac7j/image/upload/v1789153946/ar_restaurant_inputs/hih4qvruegqsvhsg3xiw.png" },
+                      { name: "Pizza", url: "https://res.cloudinary.com/dakh7ac7j/image/upload/v1789153942/ar_restaurant_inputs/nrxfen4tt2c0bibvj7hl.png" },
+                      { name: "Dosa", url: "https://res.cloudinary.com/dakh7ac7j/image/upload/v1789153951/ar_restaurant_inputs/c9vrgyagymwwd2yucyvp.png" },
+                      { name: "Pasta", url: "https://res.cloudinary.com/dakh7ac7j/image/upload/v1789153939/ar_restaurant_inputs/qyqubfwwt4injmljchhx.png" },
+                      { name: "Chili Paneer", url: "https://res.cloudinary.com/dakh7ac7j/image/upload/v1789156579/ar_restaurant_inputs/yiyagubpc6c15zsmfoqt.png" },
+                    ].map((sample) => (
+                      <button
+                        key={sample.name}
+                        type="button"
+                        onClick={() => handleSelectSamplePhoto(sample.name, sample.url)}
+                        className="px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-950 text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors shrink-0 cursor-pointer"
+                      >
+                        {sample.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dedicated Generate 3D Model Button */}
+                <Button
+                  type="button"
+                  onClick={handleGenerate3D}
+                  disabled={isGenerating || (!selectedFile && !previewUrl)}
+                  className="w-full py-5 mt-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-white font-bold text-xs gap-2 shadow-xl cursor-pointer disabled:opacity-50"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                      <span>{generationStage || "Synthesizing 3D Model…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 text-amber-400" />
+                      <span>Generate 3D Model Preview</span>
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
 

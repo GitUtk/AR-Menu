@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDatabase, DishModel } from "@/lib/db";
 import { Dish } from "@/lib/dishes";
 import { deleteCloudinaryAsset } from "@/lib/cloudinary";
+import { calculateProportionalArScale, parseGlbBoundingBox } from "@/lib/modelScale";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,21 @@ export async function POST(req: Request) {
 
     await connectToDatabase();
 
+    const dishTags = Array.isArray(tags) && tags.length > 0 ? tags : ["signature"];
+
+    let finalArScale = arScale;
+    if (!finalArScale || finalArScale === "1.0 1.0 1.0") {
+      let glbBuf: Buffer | null = null;
+      if (model && typeof model === "string" && model.startsWith("http")) {
+        try {
+          const res = await fetch(model, { headers: { Range: "bytes=0-10000" } });
+          const arrBuf = await res.arrayBuffer();
+          glbBuf = Buffer.from(arrBuf);
+        } catch {}
+      }
+      finalArScale = calculateProportionalArScale(glbBuf, name, dishTags);
+    }
+
     const dishData = {
       id: dishId,
       name,
@@ -80,8 +96,8 @@ export async function POST(req: Request) {
       prepTime: prepTime || "15 min",
       calories: calories ? (calories.toLowerCase().includes("kcal") ? calories : `${calories} kcal`) : "500 kcal",
       badge: badge || "Chef Special",
-      tags: Array.isArray(tags) && tags.length > 0 ? tags : ["signature"],
-      arScale: arScale || "1.0 1.0 1.0",
+      tags: dishTags,
+      arScale: finalArScale,
       rotation: "0 0 0",
       position: "0 0 0",
     };
