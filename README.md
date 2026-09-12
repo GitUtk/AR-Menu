@@ -53,6 +53,7 @@ Access the application at `http://localhost:3000`.
 ## Credits
 
 Made with ❤️ by **Team Sentinel**
+
 - [GitUtk](https://github.com/GitUtk)
 - [tejeetvkumar](https://github.com/tejeetvkumar)
 - [TanyaSharma](https://github.com/TanyaSharma-19)
