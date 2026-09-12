@@ -4,6 +4,7 @@ An interactive, web-based Augmented Reality (AR) menu application for modern din
 
 ---
 
+
 ## Overview
 
 The AR Restaurant Menu enables guests to view high-fidelity 3D renderings of menu items and preview dishes in Augmented Reality directly through their smartphone camera without installing a native app.
