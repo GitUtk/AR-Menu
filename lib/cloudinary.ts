@@ -1,8 +1,8 @@
 import crypto from "crypto";
 
-const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dakh7ac7j";
-const API_KEY = process.env.CLOUDINARY_API_KEY || "318799848925279";
-const API_SECRET = process.env.CLOUDINARY_API_SECRET || "rsFhOOjOcqraq2iUPSfuQrUxi3g";
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
 /**
  * Extract Cloudinary public_id from a full URL.

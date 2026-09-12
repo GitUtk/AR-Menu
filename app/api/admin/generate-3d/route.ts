@@ -14,9 +14,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minute max duration for serverless 3D generation
 
 // Cloudinary credentials provided for persistent Vercel storage
-const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dakh7ac7j";
-const API_KEY = process.env.CLOUDINARY_API_KEY || "318799848925279";
-const API_SECRET = process.env.CLOUDINARY_API_SECRET || "rsFhOOjOcqraq2iUPSfuQrUxi3g";
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
 /**
  * Upload input image buffer to Cloudinary raw/image storage
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const hfToken = process.env.HF_TOKEN || "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";
+    const hfToken = process.env.HF_TOKEN || "";
 
     // Attempt Option A: Pure Node.js + @gradio/client + Cloudinary Storage (Vercel Compatible)
     try {

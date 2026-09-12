@@ -1,14 +1,10 @@
 import crypto from "crypto";
 import { connectToDatabase, AdminConfigModel } from "./db";
 
-// SHA-256 hash of password "utkarsh" fallback
-export const DEFAULT_ADMIN_PASSWORD_HASH =
-  process.env.ADMIN_PASSWORD_HASH ||
-  "804b33542c3172aa05608e9d079e2a31726ace6dd4c78a130707862d76fbd30c";
+export const DEFAULT_ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
 
 // Secret for signing session cookies
-export const SESSION_SECRET =
-  process.env.SESSION_SECRET || "ar_restaurant_admin_secret_key_2026";
+export const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password.trim()).digest("hex");

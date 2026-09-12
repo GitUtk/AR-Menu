@@ -269,9 +269,7 @@ export async function connectToDatabase() {
 
   // Seed default admin password hash if missing
   try {
-    const defaultHash =
-      process.env.ADMIN_PASSWORD_HASH ||
-      "804b33542c3172aa05608e9d079e2a31726ace6dd4c78a130707862d76fbd30c";
+    const defaultHash = process.env.ADMIN_PASSWORD_HASH || "";
 
     const adminConfig = await AdminConfigModel.findOne({ key: "admin_password_hash" });
     if (!adminConfig) {
