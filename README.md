@@ -47,7 +47,6 @@ npm run build
 ```
 
 Access the application at `http://localhost:3000`.
-
 ---
 
 ## Credits
